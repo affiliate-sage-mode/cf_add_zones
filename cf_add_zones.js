@@ -145,18 +145,32 @@ function readDomains(filePath) {
   const seen = new Set();
   const lines = fs.readFileSync(abs, 'utf8').split(/\r?\n/);
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const lineNumber = index + 1;
     const clean = line.replace(/\s+#.*$/, '').trim();
     if (!clean || clean.startsWith('#')) continue;
 
     const [domainRaw, ipRaw] = clean.split(/[\s,;]+/);
     const domain = normalizeDomain(domainRaw);
-    if (!domain || seen.has(domain)) continue;
+    if (!domain) {
+      console.warn(`Warning: skipped invalid domain on line ${lineNumber}: ${domainRaw}`);
+      continue;
+    }
+
+    if (seen.has(domain)) {
+      console.warn(`Warning: skipped duplicate domain on line ${lineNumber}: ${domain}`);
+      continue;
+    }
+
+    if (ipRaw && !isValidIPv4(ipRaw)) {
+      throw new Error(`Invalid IPv4 address on line ${lineNumber}: ${ipRaw}`);
+    }
 
     seen.add(domain);
     domains.push({
       domain,
-      ip: isValidIPv4(ipRaw) ? ipRaw : '',
+      ip: ipRaw || '',
     });
   }
 
@@ -278,15 +292,31 @@ async function updateARecord(cfg, zoneId, record, ip) {
   }));
 }
 
+async function deleteDnsRecord(cfg, zoneId, recordId) {
+  return retry(() => cfRequest(cfg, 'DELETE', `/zones/${zoneId}/dns_records/${recordId}`));
+}
+
 async function ensureARecords(cfg, zoneId, domain, ip) {
   for (const name of [domain, `*.${domain}`]) {
     const records = await listARecords(cfg, zoneId, name);
-    const existing = Array.isArray(records) ? records[0] : null;
+    const existingRecords = Array.isArray(records) ? records : [];
 
-    if (!existing) {
+    if (!existingRecords.length) {
       await createARecord(cfg, zoneId, name, ip);
       console.log(`  DNS: created A ${name} -> ${ip}`);
       continue;
+    }
+
+    const isDesired = (record) =>
+      record.content === ip &&
+      Boolean(record.proxied) === Boolean(cfg.proxied) &&
+      Number(record.ttl) === Number(cfg.ttl);
+
+    const existing = existingRecords.find(isDesired) || existingRecords[0];
+    const extraRecords = existingRecords.filter((record) => record.id !== existing.id);
+    for (const record of extraRecords) {
+      await deleteDnsRecord(cfg, zoneId, record.id);
+      console.log(`  DNS: removed extra A ${name} (${record.content})`);
     }
 
     const needsUpdate =

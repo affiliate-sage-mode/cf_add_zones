@@ -117,7 +117,8 @@ The file contains domains and assigned Cloudflare nameservers. Add those nameser
 
 - Do not publish `.env` or share your API Token.
 - If a domain already exists in Cloudflare, the script does not create a duplicate. It reuses the existing zone and updates the selected settings.
-- If an IP is provided, the script creates two A records: the root domain and wildcard `*.domain.com`.
+- If an IP is provided, the script keeps one A record for the root domain and one A record for wildcard `*.domain.com`. Extra A records with the same name are removed to avoid stale IPs.
+- Invalid per-domain IP addresses stop the run instead of silently falling back to the global IP.
 - DNS changes are not always instant. They usually take from a few minutes to a few hours.
 
 ---
@@ -241,5 +242,6 @@ nameservers.csv
 
 - Не публікуйте `.env` і не відправляйте нікому API Token.
 - Якщо домен уже є в Cloudflare, скрипт не створює дубль, а використовує наявну зону й оновлює вибрані налаштування.
-- Якщо IP заданий, скрипт створює два A-записи: кореневий домен і wildcard `*.domain.com`.
+- Якщо IP заданий, скрипт залишає один A-запис для кореневого домену й один A-запис для wildcard `*.domain.com`. Зайві A-записи з тим самим іменем видаляються, щоб не лишались старі IP.
+- Некоректний IP біля окремого домену зупиняє запуск, а не підставляє глобальний IP мовчки.
 - DNS-зміни можуть застосовуватись не миттєво. Зазвичай це займає від кількох хвилин до кількох годин.

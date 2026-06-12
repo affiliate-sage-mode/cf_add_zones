@@ -1,0 +1,5 @@
+example.com
+example.org
+
+# Optional: set a different IP for a specific domain
+example.net 203.0.113.20

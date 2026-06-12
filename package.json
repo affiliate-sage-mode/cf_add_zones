@@ -1,0 +1,14 @@
+{
+  "name": "cloudflare-bulk-zones",
+  "version": "1.0.0",
+  "description": "Simple local tool for adding domains to Cloudflare in bulk.",
+  "main": "cf_add_zones.js",
+  "scripts": {
+    "start": "node server.js",
+    "cli": "node cf_add_zones.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

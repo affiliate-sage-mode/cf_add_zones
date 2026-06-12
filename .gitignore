@@ -1,0 +1,6 @@
+.env
+domains.txt
+nameservers.csv
+telegram-post.md
+*.log
+node_modules/

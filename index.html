@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloudflare Bulk Zones</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #667085;
+      --border: #d9dee7;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --ok: #067647;
+      --bad: #b42318;
+      --code: #101828;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    form, .result {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 650;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      padding: 10px 12px;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 14px;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 3px solid rgba(37, 99, 235, 0.16);
+      border-color: var(--accent);
+    }
+
+    .hint {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      padding: 11px 18px;
+    }
+
+    button:hover { background: var(--accent-dark); }
+    button:disabled { opacity: .7; cursor: wait; }
+
+    .result {
+      margin-top: 18px;
+    }
+
+    .status {
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+
+    pre {
+      margin: 0;
+      overflow: auto;
+      max-height: 460px;
+      border-radius: 8px;
+      background: var(--code);
+      color: #eef2ff;
+      padding: 14px;
+      white-space: pre-wrap;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Cloudflare Bulk Zones</h1>
+      <p>Додайте список доменів у Cloudflare і, за потреби, одразу створіть A-записи.</p>
+    </header>
+
+    <form id="form">
+      <div class="grid">
+        <div>
+          <label for="token">Cloudflare API Token</label>
+          <input id="token" name="token" type="password" autocomplete="off" placeholder="Вставте токен або залиште порожнім, якщо він є у .env">
+        </div>
+        <div>
+          <label for="accountId">Cloudflare Account ID</label>
+          <input id="accountId" name="accountId" autocomplete="off" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="ip">IPv4 сервера</label>
+          <input id="ip" name="ip" placeholder="203.0.113.10">
+          <div class="hint">Якщо залишити порожнім, скрипт лише створить зони й покаже NS.</div>
+        </div>
+        <div>
+          <label for="proxied">Cloudflare proxy</label>
+          <select id="proxied" name="proxied">
+            <option value="true" selected>Увімкнено</option>
+            <option value="false">Вимкнено</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="sslStrict">SSL режим</label>
+          <select id="sslStrict" name="sslStrict">
+            <option value="true" selected>Full (strict)</option>
+            <option value="false">Не змінювати</option>
+          </select>
+        </div>
+        <div>
+          <label for="dryRun">Режим запуску</label>
+          <select id="dryRun" name="dryRun">
+            <option value="false" selected>Внести зміни</option>
+            <option value="true">Тільки показати план</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="domains">Домени</label>
+        <textarea id="domains" name="domains" placeholder="example.com
+example.org
+example.net 203.0.113.20"></textarea>
+        <div class="hint">Один домен на рядок. Можна вказати окремий IP після домену.</div>
+      </div>
+
+      <div class="actions">
+        <button type="submit">Запустити</button>
+        <span class="hint">Ключі не зберігаються в браузері.</span>
+      </div>
+    </form>
+
+    <section class="result" id="result">
+      <div class="status">Очікую запуск</div>
+      <pre>Результат з'явиться тут.</pre>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector('#form');
+    const button = form.querySelector('button');
+    const result = document.querySelector('#result');
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>]/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+      }[char]));
+    }
+
+    function render(status, text, ok) {
+      result.innerHTML = `<div class="status ${ok ? 'ok' : 'bad'}">${escapeHtml(status)}</div><pre>${escapeHtml(text)}</pre>`;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      render('Запуск...', 'Cloudflare обробляє список доменів.', true);
+
+      try {
+        const body = Object.fromEntries(new FormData(form).entries());
+        const response = await fetch('/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        const output = [data.output, data.error].filter(Boolean).join('\n');
+        render(data.ok ? `Готово, код ${data.code}` : `Помилка, код ${data.code ?? 'n/a'}`, output || data.error, data.ok);
+      } catch (error) {
+        render('Помилка', error.message || String(error), false);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

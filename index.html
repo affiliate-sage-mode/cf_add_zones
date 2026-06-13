@@ -3,20 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cloudflare Bulk Zones</title>
+  <title>DNS Zone Console</title>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f7f9;
-      --panel: #ffffff;
-      --text: #172033;
-      --muted: #667085;
-      --border: #d9dee7;
-      --accent: #2563eb;
-      --accent-dark: #1d4ed8;
-      --ok: #067647;
-      --bad: #b42318;
-      --code: #101828;
+      --bg: #eef1f4;
+      --surface: #fbfcfd;
+      --surface-2: #f5f7f9;
+      --line: #cfd6dd;
+      --line-strong: #aeb8c2;
+      --text: #20262d;
+      --muted: #65717d;
+      --accent: #0f766e;
+      --accent-hover: #115e59;
+      --accent-soft: #d9f0ec;
+      --ok: #0b6b3a;
+      --bad: #b3261e;
+      --terminal: #151a1f;
+      --terminal-text: #d8e6df;
     }
 
     * { box-sizing: border-box; }
@@ -26,208 +30,399 @@
       min-height: 100vh;
       background: var(--bg);
       color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.5;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
     }
 
-    main {
-      width: min(960px, calc(100% - 32px));
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      background: rgba(251, 252, 253, .92);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-inner {
+      width: min(1180px, calc(100% - 32px));
+      min-height: 64px;
       margin: 0 auto;
-      padding: 32px 0 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
     }
 
-    header {
-      margin-bottom: 20px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, transparent 10px, rgba(15, 118, 110, .18) 10px 11px, transparent 11px),
+        linear-gradient(transparent 10px, rgba(15, 118, 110, .18) 10px 11px, transparent 11px),
+        var(--surface);
+      box-shadow: inset 0 0 0 5px #eef7f5;
+      flex: 0 0 auto;
     }
 
     h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 18px;
       line-height: 1.15;
       letter-spacing: 0;
     }
 
-    p {
-      margin: 8px 0 0;
+    .subtitle {
+      margin-top: 2px;
       color: var(--muted);
+      font-size: 13px;
     }
 
-    form, .result {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
+    .mode {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .mode-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 34px;
     }
 
     form {
       display: grid;
-      gap: 16px;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
     }
 
-    .grid {
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .panel-head {
+      min-height: 48px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .settings {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      gap: 14px;
     }
 
-    @media (max-width: 720px) {
-      .grid { grid-template-columns: 1fr; }
+    .field {
+      display: grid;
+      gap: 6px;
     }
 
     label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 650;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
     }
 
-    input, select, textarea {
+    input,
+    select,
+    textarea {
       width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
       background: #fff;
       color: var(--text);
-      font: inherit;
-      padding: 10px 12px;
+      padding: 10px 11px;
     }
 
     textarea {
-      min-height: 180px;
+      min-height: 292px;
       resize: vertical;
       font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-      font-size: 14px;
+      font-size: 13px;
+      line-height: 1.5;
     }
 
-    input:focus, select:focus, textarea:focus {
-      outline: 3px solid rgba(37, 99, 235, 0.16);
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 3px solid rgba(15, 118, 110, .16);
       border-color: var(--accent);
     }
 
     .hint {
-      margin-top: 5px;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .domains-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
     }
 
     .actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
+      justify-content: flex-end;
     }
 
     button {
-      border: 0;
-      border-radius: 8px;
+      min-height: 39px;
+      border: 1px solid transparent;
+      border-radius: 6px;
       background: var(--accent);
       color: #fff;
       cursor: pointer;
-      font: inherit;
-      font-weight: 700;
-      padding: 11px 18px;
+      font-weight: 750;
+      padding: 9px 15px;
     }
 
-    button:hover { background: var(--accent-dark); }
-    button:disabled { opacity: .7; cursor: wait; }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: .72; cursor: wait; }
+
+    .ghost {
+      background: var(--surface-2);
+      border-color: var(--line-strong);
+      color: var(--text);
+    }
+
+    .ghost:hover {
+      background: var(--accent-soft);
+    }
 
     .result {
-      margin-top: 18px;
+      overflow: hidden;
     }
 
     .status {
-      font-weight: 700;
-      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 750;
     }
 
     .ok { color: var(--ok); }
     .bad { color: var(--bad); }
+    .idle { color: var(--muted); }
 
     pre {
       margin: 0;
+      min-height: 220px;
+      max-height: 430px;
       overflow: auto;
-      max-height: 460px;
-      border-radius: 8px;
-      background: var(--code);
-      color: #eef2ff;
-      padding: 14px;
+      background: var(--terminal);
+      color: var(--terminal-text);
+      padding: 15px 16px;
       white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
       font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .compact-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px;
+      gap: 10px;
+    }
+
+    @media (max-width: 860px) {
+      .topbar-inner {
+        min-height: auto;
+        padding: 14px 0;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      form {
+        grid-template-columns: 1fr;
+      }
+
+      .domains-head {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .compact-row {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar-inner,
+      main {
+        width: min(100% - 20px, 1180px);
+      }
+
+      .panel-body,
+      .panel-head {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
     }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <h1>Cloudflare Bulk Zones</h1>
-      <p>Додайте список доменів у Cloudflare і, за потреби, одразу створіть A-записи.</p>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="mark" aria-hidden="true"></div>
+          <div>
+            <h1>DNS Zone Console</h1>
+            <div class="subtitle">Масове додавання зон і базових A-записів</div>
+          </div>
+        </div>
+        <div class="mode">
+          <span class="mode-dot" aria-hidden="true"></span>
+          <span>Локальний запуск</span>
+        </div>
+      </div>
     </header>
 
-    <form id="form">
-      <div class="grid">
-        <div>
-          <label for="token">Cloudflare API Token</label>
-          <input id="token" name="token" type="password" autocomplete="off" placeholder="Вставте токен або залиште порожнім, якщо він є у .env">
-        </div>
-        <div>
-          <label for="accountId">Cloudflare Account ID</label>
-          <input id="accountId" name="accountId" autocomplete="off" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-        </div>
-      </div>
+    <main>
+      <form id="form">
+        <aside class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Доступ і режим</h2>
+          </div>
+          <div class="panel-body settings">
+            <div class="field">
+              <label for="token">API token</label>
+              <input id="token" name="token" type="password" autocomplete="off" placeholder=".env або token">
+            </div>
 
-      <div class="grid">
-        <div>
-          <label for="ip">IPv4 сервера</label>
-          <input id="ip" name="ip" placeholder="203.0.113.10">
-          <div class="hint">Якщо залишити порожнім, скрипт лише створить зони й покаже NS.</div>
-        </div>
-        <div>
-          <label for="proxied">Cloudflare proxy</label>
-          <select id="proxied" name="proxied">
-            <option value="true" selected>Увімкнено</option>
-            <option value="false">Вимкнено</option>
-          </select>
-        </div>
-      </div>
+            <div class="field">
+              <label for="accountId">Account ID</label>
+              <input id="accountId" name="accountId" autocomplete="off" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+            </div>
 
-      <div class="grid">
-        <div>
-          <label for="sslStrict">SSL режим</label>
-          <select id="sslStrict" name="sslStrict">
-            <option value="true" selected>Full (strict)</option>
-            <option value="false">Не змінювати</option>
-          </select>
-        </div>
-        <div>
-          <label for="dryRun">Режим запуску</label>
-          <select id="dryRun" name="dryRun">
-            <option value="false" selected>Внести зміни</option>
-            <option value="true">Тільки показати план</option>
-          </select>
-        </div>
-      </div>
+            <div class="field">
+              <label for="ip">IPv4 для A-записів</label>
+              <input id="ip" name="ip" placeholder="203.0.113.10">
+              <div class="hint">Без IP будуть створені тільки зони й список NS.</div>
+            </div>
 
-      <div>
-        <label for="domains">Домени</label>
-        <textarea id="domains" name="domains" placeholder="example.com
-example.org
-example.net 203.0.113.20"></textarea>
-        <div class="hint">Один домен на рядок. Можна вказати окремий IP після домену.</div>
-      </div>
+            <div class="compact-row">
+              <div class="field">
+                <label for="proxied">Proxy</label>
+                <select id="proxied" name="proxied">
+                  <option value="true" selected>On</option>
+                  <option value="false">Off</option>
+                </select>
+              </div>
 
-      <div class="actions">
-        <button type="submit">Запустити</button>
-        <span class="hint">Ключі не зберігаються в браузері.</span>
-      </div>
-    </form>
+              <div class="field">
+                <label for="ttl">TTL</label>
+                <input id="ttl" name="ttl" value="1" inputmode="numeric">
+              </div>
+            </div>
 
-    <section class="result" id="result">
-      <div class="status">Очікую запуск</div>
-      <pre>Результат з'явиться тут.</pre>
-    </section>
-  </main>
+            <div class="field">
+              <label for="sslStrict">SSL</label>
+              <select id="sslStrict" name="sslStrict">
+                <option value="true" selected>Full strict</option>
+                <option value="false">Не змінювати</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="dryRun">Запуск</label>
+              <select id="dryRun" name="dryRun">
+                <option value="false" selected>Внести зміни</option>
+                <option value="true">Тільки план</option>
+              </select>
+            </div>
+          </div>
+        </aside>
+
+        <section class="workspace">
+          <div class="panel">
+            <div class="panel-head domains-head">
+              <div>
+                <h2 class="panel-title">Список доменів</h2>
+                <div class="hint">Один домен на рядок. Окремий IP можна додати після домена.</div>
+              </div>
+              <div class="actions">
+                <button class="ghost" type="button" id="sample">Приклад</button>
+                <button type="submit">Запустити</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <textarea id="domains" name="domains" placeholder="example.com&#10;example.org&#10;example.net 203.0.113.20"></textarea>
+            </div>
+          </div>
+
+          <section class="panel result" id="result">
+            <div class="panel-head">
+              <h2 class="panel-title">Журнал</h2>
+              <div class="status idle">Очікує запуск</div>
+            </div>
+            <pre>Результат зʼявиться тут.</pre>
+          </section>
+        </section>
+      </form>
+    </main>
+  </div>
 
   <script>
     const form = document.querySelector('#form');
-    const button = form.querySelector('button');
+    const button = form.querySelector('button[type="submit"]');
+    const sampleButton = document.querySelector('#sample');
+    const domains = document.querySelector('#domains');
     const result = document.querySelector('#result');
 
     function escapeHtml(value) {
@@ -238,14 +433,30 @@ example.net 203.0.113.20"></textarea>
       }[char]));
     }
 
-    function render(status, text, ok) {
-      result.innerHTML = `<div class="status ${ok ? 'ok' : 'bad'}">${escapeHtml(status)}</div><pre>${escapeHtml(text)}</pre>`;
+    function render(status, text, tone = 'idle') {
+      const statusClass = tone === 'ok' ? 'ok' : tone === 'bad' ? 'bad' : 'idle';
+      result.innerHTML = `
+        <div class="panel-head">
+          <h2 class="panel-title">Журнал</h2>
+          <div class="status ${statusClass}">${escapeHtml(status)}</div>
+        </div>
+        <pre>${escapeHtml(text)}</pre>
+      `;
     }
+
+    sampleButton.addEventListener('click', () => {
+      domains.value = [
+        'example.com',
+        'example.org',
+        'example.net 203.0.113.20',
+      ].join('\n');
+      domains.focus();
+    });
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       button.disabled = true;
-      render('Запуск...', 'Cloudflare обробляє список доменів.', true);
+      render('В роботі', 'Обробляю список доменів...');
 
       try {
         const body = Object.fromEntries(new FormData(form).entries());
@@ -255,10 +466,10 @@ example.net 203.0.113.20"></textarea>
           body: JSON.stringify(body),
         });
         const data = await response.json();
-        const output = [data.output, data.error].filter(Boolean).join('\n');
-        render(data.ok ? `Готово, код ${data.code}` : `Помилка, код ${data.code ?? 'n/a'}`, output || data.error, data.ok);
+        const output = [data.output, data.error].filter(Boolean).join('\n') || data.error || 'Немає відповіді.';
+        render(data.ok ? `Готово, код ${data.code}` : `Помилка, код ${data.code ?? 'n/a'}`, output, data.ok ? 'ok' : 'bad');
       } catch (error) {
-        render('Помилка', error.message || String(error), false);
+        render('Помилка', error.message || String(error), 'bad');
       } finally {
         button.disabled = false;
       }
